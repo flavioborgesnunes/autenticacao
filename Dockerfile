@@ -1,21 +1,25 @@
-ARG PYTHON_VERSION=3.10-slim
-
-FROM python:${PYTHON_VERSION}
+# Use uma imagem oficial do Python
+FROM python:3.11-slim
 
 ENV PYTHONDONTWRITEBYTECODE 1
 ENV PYTHONUNBUFFERED 1
 
-RUN mkdir -p /code
+# Cria diretório da app
+WORKDIR /app
 
-WORKDIR /code
+# Instala dependências
+COPY requirements.txt .
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-COPY requirements.txt /tmp/requirements.txt
-RUN set -ex && \
-    pip install --upgrade pip && \
-    pip install -r /tmp/requirements.txt && \
-    rm -rf /root/.cache/
-COPY . /code
+# Copia o código da aplicação
+COPY . .
 
+# Coleta arquivos estáticos
+RUN python manage.py collectstatic --noinput
+
+# Expõe a porta usada pelo app
 EXPOSE 8000
 
-CMD ["gunicorn","--bind",":8000","--workers","2","auth_api.wsgi"]
+# Inicia o servidor
+CMD ["gunicorn", "auth_api.wsgi:application", "--bind", "0.0.0.0:8000"]
